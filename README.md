@@ -48,9 +48,11 @@ Run the command **Open Wardley Strategic Map** to see your components automatica
 
 Toggle the intelligence panel to see:
 
-- **Validation warnings**: low confidence, missing evidence, outdated validations, evolution inconsistencies
-- **Strategic insights**: orphaned components, critical paths, evolution gaps, dependency risks
+- **Validation warnings**: data quality checks on your notes
+- **Strategic insights**: graph structure analysis
 - **Distribution charts**: evolution stage and importance breakdowns
+
+See [Strategic Intelligence](#strategic-intelligence) below for details.
 
 ## Frontmatter reference
 
@@ -86,6 +88,44 @@ The plugin supports three scoping patterns:
 1. **Vault-wide**: All strategic notes appear on one map (default)
 2. **Folder-scoped**: Add a `Map-Context.md` file to a folder. Its first heading becomes the map name.
 3. **Membership-based**: Add `strategic_maps: ["map-id"]` to notes to group them into named maps.
+
+## Strategic Intelligence
+
+The intelligence panel runs two types of checks against your map. These are simple, opinionated heuristics for a first-pass audit, not deep strategic analysis.
+
+### Validation warnings
+
+Data quality checks on individual notes:
+
+| Warning | Triggers when | Severity |
+|---------|--------------|----------|
+| **Low Confidence** | `confidence_level` is `low` | medium |
+| **Missing Evidence** | No `evidence_sources`, or linked evidence notes don't exist in the vault | medium/low |
+| **Outdated Validation** | `last_validated` is over 6 months ago (medium) or 12 months (high), or missing entirely | low-high |
+| **Evolution Inconsistency** | Type/stage combination is unusual (e.g., a `user_need` at `commodity` stage) | low |
+
+The evolution consistency check uses a simple lookup of typical stage ranges per type:
+
+| Type | Expected stages |
+|------|----------------|
+| `user_need` | genesis, custom |
+| `capability` | custom, product |
+| `component` | product, commodity |
+| `service` | product, commodity |
+| `product` | custom, product |
+
+Components outside these ranges get a low-severity flag. It's a heuristic, not a rule.
+
+### Strategic insights
+
+Graph structure analysis across the map:
+
+| Insight | What it detects | Priority |
+|---------|----------------|----------|
+| **Orphaned Components** | Notes with `wardley: true` that have no `depends_on`, `enables`, or other relationship edges. Disconnected from the value chain. | medium |
+| **Critical Path** | Components marked `critical` importance, or components that 3+ other components depend on. Single points of failure. | high |
+| **Evolution Gap** | A more-evolved component depends directly on a much less-evolved one (gap > 1 stage), suggesting missing intermediate layers. | medium |
+| **Dependency Risk** | You depend on a component that has `low` confidence or hasn't been validated in over 12 months. Inherited uncertainty. | high |
 
 ## Installation
 
