@@ -233,20 +233,6 @@
 	gap: 0.5rem;
 }
 
-.collapsible-header::before {
-	content: '\u25B6';
-	font-size: 0.6rem;
-	transition: transform 0.15s ease;
-	color: var(--text-muted);
-}
-
-details[open] > .collapsible-header::before {
-	transform: rotate(90deg);
-}
-
-.collapsible-header::-webkit-details-marker {
-	display: none;
-}
 
 .collapsible-content {
 	padding-top: 0.5rem;
