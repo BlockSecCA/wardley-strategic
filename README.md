@@ -18,6 +18,7 @@ Add strategic frontmatter to any note:
 
 ```yaml
 ---
+wardley: true
 type: product
 evolution_stage: product
 strategic_importance: critical
@@ -55,6 +56,7 @@ Toggle the intelligence panel to see:
 
 | Field | Values | Description |
 |-------|--------|-------------|
+| `wardley` | `true` | **Required.** Opts this note into strategic mapping |
 | `type` | `component`, `user_need`, `capability`, `product`, `service` | Component classification |
 | `evolution_stage` | `genesis`, `custom`, `product`, `commodity` | Position on evolution axis |
 | `strategic_importance` | `critical`, `important`, `supporting`, `optional` | Drives node color |

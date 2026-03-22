@@ -48,6 +48,7 @@ This plugin reads YAML frontmatter from vault notes, not inline code blocks. Eac
 ## Frontmatter Format
 
 ```yaml
+wardley: true        # Required discriminator
 type: component | user_need | capability | product | service
 evolution_stage: genesis | custom | product | commodity
 strategic_importance: critical | important | supporting | optional

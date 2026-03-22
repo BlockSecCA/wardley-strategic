@@ -1,4 +1,5 @@
 ---
+wardley: true
 type: component
 evolution_stage: custom
 strategic_importance: supporting

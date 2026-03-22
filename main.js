@@ -216,12 +216,14 @@ var VaultScanner = class {
   }
   /**
    * Extract strategic metadata from a note's cached metadata.
-   * Only reads plain field names (no BC- prefix).
+   * Requires `wardley: true` in frontmatter to opt in.
    */
   extractStrategicMetadata(cache) {
     if (!(cache == null ? void 0 : cache.frontmatter))
       return void 0;
     const fm = cache.frontmatter;
+    if (fm.wardley !== true)
+      return void 0;
     const strategic = {};
     if (fm.type && STRATEGIC_TYPES.includes(fm.type)) {
       strategic.type = fm.type;

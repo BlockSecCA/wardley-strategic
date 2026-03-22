@@ -80,12 +80,16 @@ export class VaultScanner {
 
 	/**
 	 * Extract strategic metadata from a note's cached metadata.
-	 * Only reads plain field names (no BC- prefix).
+	 * Requires `wardley: true` in frontmatter to opt in.
 	 */
 	extractStrategicMetadata(cache: CachedMetadata | null | undefined): StrategicAttributes | undefined {
 		if (!cache?.frontmatter) return undefined;
 
 		const fm = cache.frontmatter;
+
+		// Discriminator: only process notes that explicitly opt in
+		if (fm.wardley !== true) return undefined;
+
 		const strategic: StrategicAttributes = {};
 
 		// Type

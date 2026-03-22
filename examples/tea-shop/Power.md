@@ -1,4 +1,5 @@
 ---
+wardley: true
 type: service
 evolution_stage: product
 strategic_importance: supporting

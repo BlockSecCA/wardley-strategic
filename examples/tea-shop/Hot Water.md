@@ -1,4 +1,5 @@
 ---
+wardley: true
 type: capability
 evolution_stage: commodity
 strategic_importance: important
