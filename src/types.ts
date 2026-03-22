@@ -164,6 +164,12 @@ export const STRATEGIC_FIELDS = [
 	"strategic_maps",
 ] as const;
 
+// Scanner warning for malformed notes
+export interface ScanWarning {
+	path: string;
+	problems: string[];
+}
+
 // Analysis summary
 export interface AnalysisSummary {
 	total_components: number;

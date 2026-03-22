@@ -161,10 +161,14 @@ var VaultScanner = class {
   }
   scanVault() {
     const graph = new StrategicGraph();
+    const warnings = [];
     const files = this.app.vault.getMarkdownFiles();
     for (const file of files) {
       const cache = this.app.metadataCache.getFileCache(file);
-      const strategic = this.extractStrategicMetadata(cache);
+      const { strategic, problems } = this.extractStrategicMetadata(cache);
+      if (problems.length > 0) {
+        warnings.push({ path: file.path, problems });
+      }
       if (strategic) {
         graph.addNode(file.path, {
           id: file.path,
@@ -190,7 +194,7 @@ var VaultScanner = class {
         if (targetFile instanceof import_obsidian.TFile) {
           if (!graph.hasNode(targetFile.path)) {
             const targetCache = this.app.metadataCache.getFileCache(targetFile);
-            const targetStrategic = this.extractStrategicMetadata(targetCache);
+            const { strategic: targetStrategic } = this.extractStrategicMetadata(targetCache);
             graph.addNode(targetFile.path, {
               id: targetFile.path,
               resolved: true,
@@ -201,7 +205,7 @@ var VaultScanner = class {
         }
       }
     }
-    return graph;
+    return { graph, warnings };
   }
   /**
    * Extract the field name from a frontmatterLinks key.
@@ -217,36 +221,66 @@ var VaultScanner = class {
   /**
    * Extract strategic metadata from a note's cached metadata.
    * Requires `wardley: true` in frontmatter to opt in.
+   * Returns the extracted metadata and any problems found.
    */
   extractStrategicMetadata(cache) {
+    const empty = { strategic: void 0, problems: [] };
     if (!(cache == null ? void 0 : cache.frontmatter))
-      return void 0;
+      return empty;
     const fm = cache.frontmatter;
     if (fm.wardley !== true)
-      return void 0;
+      return empty;
     const strategic = {};
-    if (fm.type && STRATEGIC_TYPES.includes(fm.type)) {
-      strategic.type = fm.type;
+    const problems = [];
+    if (fm.type != null) {
+      if (STRATEGIC_TYPES.includes(fm.type)) {
+        strategic.type = fm.type;
+      } else {
+        problems.push(`Invalid type "${fm.type}". Expected: ${STRATEGIC_TYPES.join(", ")}`);
+      }
     }
-    if (fm.evolution_stage && EVOLUTION_STAGES.includes(fm.evolution_stage)) {
-      strategic.evolution_stage = fm.evolution_stage;
+    if (fm.evolution_stage != null) {
+      if (EVOLUTION_STAGES.includes(fm.evolution_stage)) {
+        strategic.evolution_stage = fm.evolution_stage;
+      } else {
+        problems.push(`Invalid evolution_stage "${fm.evolution_stage}". Expected: ${EVOLUTION_STAGES.join(", ")}`);
+      }
     }
-    if (fm.strategic_importance && STRATEGIC_IMPORTANCE.includes(fm.strategic_importance)) {
-      strategic.strategic_importance = fm.strategic_importance;
+    if (fm.strategic_importance != null) {
+      if (STRATEGIC_IMPORTANCE.includes(fm.strategic_importance)) {
+        strategic.strategic_importance = fm.strategic_importance;
+      } else {
+        problems.push(`Invalid strategic_importance "${fm.strategic_importance}". Expected: ${STRATEGIC_IMPORTANCE.join(", ")}`);
+      }
     }
-    if (fm.confidence_level && CONFIDENCE_LEVELS.includes(fm.confidence_level)) {
-      strategic.confidence_level = fm.confidence_level;
+    if (fm.confidence_level != null) {
+      if (CONFIDENCE_LEVELS.includes(fm.confidence_level)) {
+        strategic.confidence_level = fm.confidence_level;
+      } else {
+        problems.push(`Invalid confidence_level "${fm.confidence_level}". Expected: ${CONFIDENCE_LEVELS.join(", ")}`);
+      }
     }
     if (fm.evidence_sources) {
       strategic.evidence_sources = Array.isArray(fm.evidence_sources) ? fm.evidence_sources : [fm.evidence_sources];
     }
-    if (typeof fm.last_validated === "string") {
-      strategic.last_validated = fm.last_validated;
+    if (fm.last_validated != null) {
+      if (typeof fm.last_validated === "string" && /^\d{4}-\d{2}-\d{2}$/.test(fm.last_validated)) {
+        strategic.last_validated = fm.last_validated;
+      } else {
+        problems.push(`Invalid last_validated "${fm.last_validated}". Expected: YYYY-MM-DD`);
+      }
     }
     if (fm.strategic_maps) {
       strategic.strategic_maps = Array.isArray(fm.strategic_maps) ? fm.strategic_maps : [fm.strategic_maps];
     }
-    return Object.keys(strategic).length > 0 ? strategic : void 0;
+    if (Object.keys(strategic).length === 0) {
+      problems.push("No valid strategic fields found. Note is skipped.");
+      return { strategic: void 0, problems };
+    }
+    if (!strategic.evolution_stage) {
+      problems.push("Missing evolution_stage. Component will appear but may be mispositioned.");
+    }
+    return { strategic, problems };
   }
 };
 
@@ -1156,7 +1190,7 @@ var IntelligencePanel = class {
     this.graph = graph;
     this.contextManager = contextManager;
   }
-  async refresh() {
+  async refresh(scanWarnings) {
     this.loading = true;
     this.container.empty();
     const context = this.contextManager.getCurrentMapContext() || this.contextManager.getDefaultMapContext();
@@ -1171,15 +1205,18 @@ var IntelligencePanel = class {
     const analyzer = new StrategicAnalyzer(this.graph, checkNoteExists);
     const componentIds = this.contextManager.getComponentsForMap(context.id);
     const result = analyzer.analyze(componentIds);
-    this.renderPanel(context.name, context.scope, result);
+    this.renderPanel(context.name, context.scope, result, scanWarnings != null ? scanWarnings : []);
     this.loading = false;
   }
-  renderPanel(contextName, scope, result) {
+  renderPanel(contextName, scope, result, scanWarnings) {
     const panel = this.container.createDiv({ cls: "strategic-intelligence-panel" });
     const header = panel.createDiv({ cls: "panel-header" });
     header.createEl("h3", { text: "Strategic Intelligence" });
     const refreshBtn = header.createEl("button", { cls: "refresh-btn", text: "Refresh" });
-    refreshBtn.addEventListener("click", () => this.refresh());
+    refreshBtn.addEventListener("click", () => this.refresh(scanWarnings));
+    if (scanWarnings.length > 0) {
+      this.renderScanWarnings(panel, scanWarnings);
+    }
     const contextInfo = panel.createDiv({ cls: "context-info" });
     contextInfo.createEl("h4", { text: contextName });
     contextInfo.createEl("span", { text: scope, cls: "context-scope" });
@@ -1263,6 +1300,24 @@ var IntelligencePanel = class {
       }
     }
   }
+  renderScanWarnings(parent, scanWarnings) {
+    const section = parent.createDiv({ cls: "scan-warnings-section" });
+    section.createEl("h5", { text: `Malformed Notes (${scanWarnings.length})` });
+    const list = section.createDiv({ cls: "items-list" });
+    for (const warning of scanWarnings) {
+      const item = list.createDiv({ cls: "warning-item severity-medium" });
+      const itemHeader = item.createDiv({ cls: "item-header" });
+      itemHeader.createEl("span", { cls: "severity-icon", text: "\u26A0\uFE0F" });
+      const link = itemHeader.createEl("button", {
+        cls: "component-link",
+        text: this.getDisplayName(warning.path)
+      });
+      link.addEventListener("click", () => this.openComponent(warning.path));
+      for (const problem of warning.problems) {
+        item.createDiv({ cls: "item-message", text: problem });
+      }
+    }
+  }
   renderEmptyState() {
     const empty = this.container.createDiv({ cls: "empty-state" });
     empty.createEl("p", { text: "No strategic map context available." });
@@ -1306,7 +1361,7 @@ var IntelligencePanel = class {
 // src/views/map-view.ts
 var VIEW_TYPE_WARDLEY = "wardley-strategic-map";
 var WardleyMapView = class extends import_obsidian3.ItemView {
-  constructor(leaf, graph, contextManager, settings) {
+  constructor(leaf, plugin) {
     super(leaf);
     this.renderer = null;
     this.intelligencePanel = null;
@@ -1317,9 +1372,7 @@ var WardleyMapView = class extends import_obsidian3.ItemView {
     this.canvasEl = null;
     this.panelEl = null;
     this.contentEl_ = null;
-    this.graph = graph;
-    this.contextManager = contextManager;
-    this.settings = settings;
+    this.plugin = plugin;
   }
   getViewType() {
     return VIEW_TYPE_WARDLEY;
@@ -1360,16 +1413,16 @@ var WardleyMapView = class extends import_obsidian3.ItemView {
     this.panelEl.style.display = "none";
     this.renderer = new WardleyMapRenderer(
       this.canvasEl,
-      this.graph,
-      this.contextManager,
-      this.settings,
+      this.plugin.graph,
+      this.plugin.contextManager,
+      this.plugin.settings.visual,
       (path) => this.app.workspace.openLinkText(path, "", false)
     );
     this.intelligencePanel = new IntelligencePanel(
       this.panelEl,
       this.app,
-      this.graph,
-      this.contextManager
+      this.plugin.graph,
+      this.plugin.contextManager
     );
     await this.refreshContexts();
     if (this.currentContext) {
@@ -1387,8 +1440,8 @@ var WardleyMapView = class extends import_obsidian3.ItemView {
   }
   async refreshContexts() {
     var _a;
-    const contexts = await this.contextManager.detectMapContexts();
-    this.currentContext = this.contextManager.getCurrentMapContext() || this.contextManager.getDefaultMapContext();
+    const contexts = await this.plugin.contextManager.detectMapContexts();
+    this.currentContext = this.plugin.contextManager.getCurrentMapContext() || this.plugin.contextManager.getDefaultMapContext();
     if (this.selectEl) {
       this.selectEl.empty();
       for (const ctx of contexts) {
@@ -1406,15 +1459,15 @@ var WardleyMapView = class extends import_obsidian3.ItemView {
     if (!this.selectEl)
       return;
     const selectedId = this.selectEl.value;
-    const contexts = this.contextManager["cachedContexts"];
+    const contexts = this.plugin.contextManager["cachedContexts"];
     const selected = contexts.find((ctx) => ctx.id === selectedId);
     if (selected) {
       this.currentContext = selected;
-      this.contextManager.setCurrentMapContext(selected);
+      this.plugin.contextManager.setCurrentMapContext(selected);
       if (this.renderer)
         this.renderer.render(selected.id);
       if (this.showIntelligence && this.intelligencePanel) {
-        this.intelligencePanel.refresh();
+        this.intelligencePanel.refresh(this.plugin.scanWarnings);
       }
       const mapInfo = this.containerEl.querySelector(".map-info");
       if (mapInfo)
@@ -1422,12 +1475,29 @@ var WardleyMapView = class extends import_obsidian3.ItemView {
     }
   }
   async refreshMap() {
+    if (this.canvasEl) {
+      this.renderer = new WardleyMapRenderer(
+        this.canvasEl,
+        this.plugin.graph,
+        this.plugin.contextManager,
+        this.plugin.settings.visual,
+        (path) => this.app.workspace.openLinkText(path, "", false)
+      );
+    }
+    if (this.panelEl) {
+      this.intelligencePanel = new IntelligencePanel(
+        this.panelEl,
+        this.app,
+        this.plugin.graph,
+        this.plugin.contextManager
+      );
+    }
     await this.refreshContexts();
     if (this.renderer && this.currentContext) {
       this.renderer.render(this.currentContext.id);
     }
     if (this.showIntelligence && this.intelligencePanel) {
-      await this.intelligencePanel.refresh();
+      await this.intelligencePanel.refresh(this.plugin.scanWarnings);
     }
     const mapInfo = this.containerEl.querySelector(".map-info");
     if (mapInfo)
@@ -1443,7 +1513,7 @@ var WardleyMapView = class extends import_obsidian3.ItemView {
     }
     btn.toggleClass("active", this.showIntelligence);
     if (this.showIntelligence && this.intelligencePanel) {
-      this.intelligencePanel.refresh();
+      this.intelligencePanel.refresh(this.plugin.scanWarnings);
     }
   }
   updateMapInfo(mapInfo) {
@@ -1457,7 +1527,7 @@ var WardleyMapView = class extends import_obsidian3.ItemView {
     if (this.currentContext.description) {
       mapInfo.createEl("p", { cls: "map-description", text: this.currentContext.description });
     }
-    const badge = mapInfo.createEl("span", {
+    mapInfo.createEl("span", {
       cls: `map-scope-badge scope-${this.currentContext.scope}`,
       text: this.currentContext.scope
     });
@@ -1511,6 +1581,7 @@ var WardleyStrategicPlugin = class extends import_obsidian5.Plugin {
   constructor() {
     super(...arguments);
     this.graph = new StrategicGraph();
+    this.scanWarnings = [];
   }
   async onload() {
     await this.loadSettings();
@@ -1518,7 +1589,7 @@ var WardleyStrategicPlugin = class extends import_obsidian5.Plugin {
     this.contextManager = new MapContextManager(this.app, this.graph);
     this.registerView(
       VIEW_TYPE_WARDLEY,
-      (leaf) => new WardleyMapView(leaf, this.graph, this.contextManager, this.settings.visual)
+      (leaf) => new WardleyMapView(leaf, this)
     );
     this.addCommand({
       id: "open-wardley-map",
@@ -1557,7 +1628,9 @@ var WardleyStrategicPlugin = class extends import_obsidian5.Plugin {
   onunload() {
   }
   refresh() {
-    this.graph = this.scanner.scanVault();
+    const { graph, warnings } = this.scanner.scanVault();
+    this.graph = graph;
+    this.scanWarnings = warnings;
     this.contextManager = new MapContextManager(this.app, this.graph);
     this.app.workspace.trigger("wardley-strategic:graph-updated");
   }

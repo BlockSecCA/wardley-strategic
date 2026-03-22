@@ -5,9 +5,11 @@ import { MapContextManager } from "./map-context";
 import { WardleyMapView, VIEW_TYPE_WARDLEY } from "./views/map-view";
 import { WardleyStrategicSettingTab, DEFAULT_SETTINGS } from "./settings";
 import type { WardleyStrategicSettings } from "./settings";
+import type { ScanWarning } from "./types";
 
 export default class WardleyStrategicPlugin extends Plugin {
 	graph: StrategicGraph = new StrategicGraph();
+	scanWarnings: ScanWarning[] = [];
 	scanner!: VaultScanner;
 	contextManager!: MapContextManager;
 	settings!: WardleyStrategicSettings;
@@ -20,7 +22,7 @@ export default class WardleyStrategicPlugin extends Plugin {
 
 		// Register the Wardley map view
 		this.registerView(VIEW_TYPE_WARDLEY, (leaf) =>
-			new WardleyMapView(leaf, this.graph, this.contextManager, this.settings.visual)
+			new WardleyMapView(leaf, this)
 		);
 
 		// Command to open the map view
@@ -72,7 +74,9 @@ export default class WardleyStrategicPlugin extends Plugin {
 	}
 
 	refresh(): void {
-		this.graph = this.scanner.scanVault();
+		const { graph, warnings } = this.scanner.scanVault();
+		this.graph = graph;
+		this.scanWarnings = warnings;
 		this.contextManager = new MapContextManager(this.app, this.graph);
 
 		// Notify views

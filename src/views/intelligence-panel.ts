@@ -1,7 +1,7 @@
 import type { App } from "obsidian";
 import type { StrategicGraph } from "../graph";
 import type { MapContextManager } from "../map-context";
-import type { StrategicValidationWarning, StrategicInsight, AnalysisResult } from "../types";
+import type { StrategicValidationWarning, StrategicInsight, AnalysisResult, ScanWarning } from "../types";
 import { StrategicAnalyzer } from "../analyzer";
 
 /**
@@ -22,7 +22,7 @@ export class IntelligencePanel {
 		this.contextManager = contextManager;
 	}
 
-	async refresh(): Promise<void> {
+	async refresh(scanWarnings?: ScanWarning[]): Promise<void> {
 		this.loading = true;
 		this.container.empty();
 
@@ -43,18 +43,23 @@ export class IntelligencePanel {
 		const componentIds = this.contextManager.getComponentsForMap(context.id);
 		const result = analyzer.analyze(componentIds);
 
-		this.renderPanel(context.name, context.scope, result);
+		this.renderPanel(context.name, context.scope, result, scanWarnings ?? []);
 		this.loading = false;
 	}
 
-	private renderPanel(contextName: string, scope: string, result: AnalysisResult): void {
+	private renderPanel(contextName: string, scope: string, result: AnalysisResult, scanWarnings: ScanWarning[]): void {
 		const panel = this.container.createDiv({ cls: 'strategic-intelligence-panel' });
 
 		// Header
 		const header = panel.createDiv({ cls: 'panel-header' });
 		header.createEl('h3', { text: 'Strategic Intelligence' });
 		const refreshBtn = header.createEl('button', { cls: 'refresh-btn', text: 'Refresh' });
-		refreshBtn.addEventListener('click', () => this.refresh());
+		refreshBtn.addEventListener('click', () => this.refresh(scanWarnings));
+
+		// Scan warnings (malformed notes)
+		if (scanWarnings.length > 0) {
+			this.renderScanWarnings(panel, scanWarnings);
+		}
 
 		// Context info
 		const contextInfo = panel.createDiv({ cls: 'context-info' });
@@ -159,6 +164,29 @@ export class IntelligencePanel {
 						text: `+${insight.affected_components.length - 3} more`,
 					});
 				}
+			}
+		}
+	}
+
+	private renderScanWarnings(parent: HTMLElement, scanWarnings: ScanWarning[]): void {
+		const section = parent.createDiv({ cls: 'scan-warnings-section' });
+		section.createEl('h5', { text: `Malformed Notes (${scanWarnings.length})` });
+
+		const list = section.createDiv({ cls: 'items-list' });
+		for (const warning of scanWarnings) {
+			const item = list.createDiv({ cls: 'warning-item severity-medium' });
+
+			const itemHeader = item.createDiv({ cls: 'item-header' });
+			itemHeader.createEl('span', { cls: 'severity-icon', text: '\u26A0\uFE0F' });
+
+			const link = itemHeader.createEl('button', {
+				cls: 'component-link',
+				text: this.getDisplayName(warning.path),
+			});
+			link.addEventListener('click', () => this.openComponent(warning.path));
+
+			for (const problem of warning.problems) {
+				item.createDiv({ cls: 'item-message', text: problem });
 			}
 		}
 	}

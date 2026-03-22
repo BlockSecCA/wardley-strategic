@@ -1,16 +1,13 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
-import type { StrategicGraph } from "../graph";
-import type { MapContextManager } from "../map-context";
-import type { MapContext, WardleyMapVisualSettings } from "../types";
+import type { MapContext } from "../types";
+import type WardleyStrategicPlugin from "../main";
 import { WardleyMapRenderer } from "../renderer";
 import { IntelligencePanel } from "./intelligence-panel";
 
 export const VIEW_TYPE_WARDLEY = "wardley-strategic-map";
 
 export class WardleyMapView extends ItemView {
-	private graph: StrategicGraph;
-	private contextManager: MapContextManager;
-	private settings: WardleyMapVisualSettings;
+	private plugin: WardleyStrategicPlugin;
 
 	private renderer: WardleyMapRenderer | null = null;
 	private intelligencePanel: IntelligencePanel | null = null;
@@ -23,16 +20,9 @@ export class WardleyMapView extends ItemView {
 	private panelEl: HTMLElement | null = null;
 	private contentEl_: HTMLElement | null = null;
 
-	constructor(
-		leaf: WorkspaceLeaf,
-		graph: StrategicGraph,
-		contextManager: MapContextManager,
-		settings: WardleyMapVisualSettings,
-	) {
+	constructor(leaf: WorkspaceLeaf, plugin: WardleyStrategicPlugin) {
 		super(leaf);
-		this.graph = graph;
-		this.contextManager = contextManager;
-		this.settings = settings;
+		this.plugin = plugin;
 	}
 
 	getViewType(): string {
@@ -88,13 +78,14 @@ export class WardleyMapView extends ItemView {
 
 		// Create renderer
 		this.renderer = new WardleyMapRenderer(
-			this.canvasEl, this.graph, this.contextManager, this.settings,
+			this.canvasEl, this.plugin.graph, this.plugin.contextManager,
+			this.plugin.settings.visual,
 			(path) => this.app.workspace.openLinkText(path, '', false),
 		);
 
 		// Create intelligence panel
 		this.intelligencePanel = new IntelligencePanel(
-			this.panelEl, this.app, this.graph, this.contextManager,
+			this.panelEl, this.app, this.plugin.graph, this.plugin.contextManager,
 		);
 
 		// Initial render
@@ -118,9 +109,9 @@ export class WardleyMapView extends ItemView {
 	}
 
 	private async refreshContexts(): Promise<void> {
-		const contexts = await this.contextManager.detectMapContexts();
-		this.currentContext = this.contextManager.getCurrentMapContext()
-			|| this.contextManager.getDefaultMapContext();
+		const contexts = await this.plugin.contextManager.detectMapContexts();
+		this.currentContext = this.plugin.contextManager.getCurrentMapContext()
+			|| this.plugin.contextManager.getDefaultMapContext();
 
 		if (this.selectEl) {
 			this.selectEl.empty();
@@ -139,15 +130,15 @@ export class WardleyMapView extends ItemView {
 	private onContextChange(): void {
 		if (!this.selectEl) return;
 		const selectedId = this.selectEl.value;
-		const contexts = this.contextManager['cachedContexts'] as MapContext[];
+		const contexts = this.plugin.contextManager['cachedContexts'] as MapContext[];
 		const selected = contexts.find(ctx => ctx.id === selectedId);
 
 		if (selected) {
 			this.currentContext = selected;
-			this.contextManager.setCurrentMapContext(selected);
+			this.plugin.contextManager.setCurrentMapContext(selected);
 			if (this.renderer) this.renderer.render(selected.id);
 			if (this.showIntelligence && this.intelligencePanel) {
-				this.intelligencePanel.refresh();
+				this.intelligencePanel.refresh(this.plugin.scanWarnings);
 			}
 			const mapInfo = this.containerEl.querySelector('.map-info') as HTMLElement;
 			if (mapInfo) this.updateMapInfo(mapInfo);
@@ -155,12 +146,26 @@ export class WardleyMapView extends ItemView {
 	}
 
 	private async refreshMap(): Promise<void> {
+		// Re-wire to latest graph after a rebuild
+		if (this.canvasEl) {
+			this.renderer = new WardleyMapRenderer(
+				this.canvasEl, this.plugin.graph, this.plugin.contextManager,
+				this.plugin.settings.visual,
+				(path) => this.app.workspace.openLinkText(path, '', false),
+			);
+		}
+		if (this.panelEl) {
+			this.intelligencePanel = new IntelligencePanel(
+				this.panelEl, this.app, this.plugin.graph, this.plugin.contextManager,
+			);
+		}
+
 		await this.refreshContexts();
 		if (this.renderer && this.currentContext) {
 			this.renderer.render(this.currentContext.id);
 		}
 		if (this.showIntelligence && this.intelligencePanel) {
-			await this.intelligencePanel.refresh();
+			await this.intelligencePanel.refresh(this.plugin.scanWarnings);
 		}
 		const mapInfo = this.containerEl.querySelector('.map-info') as HTMLElement;
 		if (mapInfo) this.updateMapInfo(mapInfo);
@@ -178,7 +183,7 @@ export class WardleyMapView extends ItemView {
 		btn.toggleClass('active', this.showIntelligence);
 
 		if (this.showIntelligence && this.intelligencePanel) {
-			this.intelligencePanel.refresh();
+			this.intelligencePanel.refresh(this.plugin.scanWarnings);
 		}
 	}
 
@@ -194,7 +199,7 @@ export class WardleyMapView extends ItemView {
 		if (this.currentContext.description) {
 			mapInfo.createEl('p', { cls: 'map-description', text: this.currentContext.description });
 		}
-		const badge = mapInfo.createEl('span', {
+		mapInfo.createEl('span', {
 			cls: `map-scope-badge scope-${this.currentContext.scope}`,
 			text: this.currentContext.scope,
 		});

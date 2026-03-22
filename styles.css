@@ -216,12 +216,14 @@
 .card-value.critical { color: var(--color-red); }
 .card-value.info { color: var(--color-blue); }
 
+.scan-warnings-section,
 .distribution-section,
 .warnings-section,
 .insights-section {
 	margin-bottom: 1.5rem;
 }
 
+.scan-warnings-section h5,
 .distribution-section h5,
 .warnings-section h5,
 .insights-section h5 {
