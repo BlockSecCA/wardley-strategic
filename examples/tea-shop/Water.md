@@ -3,10 +3,10 @@ wardley: true
 type: component
 evolution_stage: commodity
 strategic_importance: supporting
-confidence_level: high
+confidence_level: low
 evidence_sources:
   - "[[Water Quality Report]]"
-last_validated: "2026-03-10"
+last_validated: "2025-06-10"
 ---
 
 # Water
