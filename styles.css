@@ -216,17 +216,47 @@
 .card-value.critical { color: var(--color-red); }
 .card-value.info { color: var(--color-blue); }
 
-.scan-warnings-section,
-.distribution-section,
-.warnings-section,
-.insights-section {
+/* Collapsible sections */
+.collapsible-section {
 	margin-bottom: 1.5rem;
 }
 
-.scan-warnings-section h5,
-.distribution-section h5,
-.warnings-section h5,
-.insights-section h5 {
+.collapsible-header {
+	cursor: pointer;
+	font-weight: 600;
+	font-size: 0.9rem;
+	color: var(--text-normal);
+	padding: 0.5rem 0;
+	list-style: none;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.collapsible-header::before {
+	content: '\u25B6';
+	font-size: 0.6rem;
+	transition: transform 0.15s ease;
+	color: var(--text-muted);
+}
+
+details[open] > .collapsible-header::before {
+	transform: rotate(90deg);
+}
+
+.collapsible-header::-webkit-details-marker {
+	display: none;
+}
+
+.collapsible-content {
+	padding-top: 0.5rem;
+}
+
+.distribution-section {
+	margin-bottom: 1.5rem;
+}
+
+.distribution-section h5 {
 	margin: 0 0 0.75rem 0;
 	color: var(--text-normal);
 	font-size: 0.9rem;

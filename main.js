@@ -1214,9 +1214,6 @@ var IntelligencePanel = class {
     header.createEl("h3", { text: "Strategic Intelligence" });
     const refreshBtn = header.createEl("button", { cls: "refresh-btn", text: "Refresh" });
     refreshBtn.addEventListener("click", () => this.refresh(scanWarnings));
-    if (scanWarnings.length > 0) {
-      this.renderScanWarnings(panel, scanWarnings);
-    }
     const contextInfo = panel.createDiv({ cls: "context-info" });
     contextInfo.createEl("h4", { text: contextName });
     contextInfo.createEl("span", { text: scope, cls: "context-scope" });
@@ -1227,12 +1224,29 @@ var IntelligencePanel = class {
     if (Object.keys(result.summary.by_evolution).length > 0) {
       this.renderDistribution(panel, result.summary.by_evolution, result.summary.total_components);
     }
-    if (result.warnings.length > 0) {
-      this.renderWarnings(panel, result.warnings);
+    if (scanWarnings.length > 0) {
+      this.renderCollapsible(panel, `Malformed Notes (${scanWarnings.length})`, false, (content) => {
+        this.renderScanWarningItems(content, scanWarnings);
+      });
     }
     if (result.insights.length > 0) {
-      this.renderInsights(panel, result.insights);
+      this.renderCollapsible(panel, `Strategic Insights (${result.insights.length})`, true, (content) => {
+        this.renderInsightItems(content, result.insights);
+      });
     }
+    if (result.warnings.length > 0) {
+      this.renderCollapsible(panel, `Validation Warnings (${result.warnings.length})`, false, (content) => {
+        this.renderWarningItems(content, result.warnings);
+      });
+    }
+  }
+  renderCollapsible(parent, title, open, renderContent) {
+    const details = parent.createEl("details", { cls: "collapsible-section" });
+    if (open)
+      details.setAttribute("open", "");
+    details.createEl("summary", { cls: "collapsible-header", text: title });
+    const content = details.createDiv({ cls: "collapsible-content" });
+    renderContent(content);
   }
   renderCard(parent, title, value, cls) {
     const card = parent.createDiv({ cls: "summary-card" });
@@ -1254,12 +1268,9 @@ var IntelligencePanel = class {
       item.createEl("span", { cls: "count", text: count.toString() });
     }
   }
-  renderWarnings(parent, warnings) {
-    const section = parent.createDiv({ cls: "warnings-section" });
-    section.createEl("h5", { text: "Validation Warnings" });
-    const list = section.createDiv({ cls: "items-list" });
+  renderWarningItems(parent, warnings) {
     for (const warning of warnings) {
-      const item = list.createDiv({ cls: `warning-item severity-${warning.severity}` });
+      const item = parent.createDiv({ cls: `warning-item severity-${warning.severity}` });
       const itemHeader = item.createDiv({ cls: "item-header" });
       itemHeader.createEl("span", { cls: "severity-icon", text: this.getSeverityIcon(warning.severity) });
       itemHeader.createEl("span", { cls: "item-type", text: this.getWarningLabel(warning.type) });
@@ -1271,12 +1282,9 @@ var IntelligencePanel = class {
       link.addEventListener("click", () => this.openComponent(warning.component_path));
     }
   }
-  renderInsights(parent, insights) {
-    const section = parent.createDiv({ cls: "insights-section" });
-    section.createEl("h5", { text: "Strategic Insights" });
-    const list = section.createDiv({ cls: "items-list" });
+  renderInsightItems(parent, insights) {
     for (const insight of insights) {
-      const item = list.createDiv({ cls: `insight-item priority-${insight.priority}` });
+      const item = parent.createDiv({ cls: `insight-item priority-${insight.priority}` });
       const itemHeader = item.createDiv({ cls: "item-header" });
       itemHeader.createEl("span", { cls: "priority-icon", text: this.getPriorityIcon(insight.priority) });
       itemHeader.createEl("span", { cls: "item-type", text: this.getInsightLabel(insight.type) });
@@ -1300,12 +1308,9 @@ var IntelligencePanel = class {
       }
     }
   }
-  renderScanWarnings(parent, scanWarnings) {
-    const section = parent.createDiv({ cls: "scan-warnings-section" });
-    section.createEl("h5", { text: `Malformed Notes (${scanWarnings.length})` });
-    const list = section.createDiv({ cls: "items-list" });
+  renderScanWarningItems(parent, scanWarnings) {
     for (const warning of scanWarnings) {
-      const item = list.createDiv({ cls: "warning-item severity-medium" });
+      const item = parent.createDiv({ cls: "warning-item severity-medium" });
       const itemHeader = item.createDiv({ cls: "item-header" });
       itemHeader.createEl("span", { cls: "severity-icon", text: "\u26A0\uFE0F" });
       const link = itemHeader.createEl("button", {

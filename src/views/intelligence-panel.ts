@@ -6,7 +6,7 @@ import { StrategicAnalyzer } from "../analyzer";
 
 /**
  * Renders the Strategic Intelligence analysis panel as DOM elements.
- * Replaces StrategicIntelligence.svelte with vanilla TypeScript.
+ * Sections are collapsible. Insights shown before warnings.
  */
 export class IntelligencePanel {
 	private container: HTMLElement;
@@ -56,11 +56,6 @@ export class IntelligencePanel {
 		const refreshBtn = header.createEl('button', { cls: 'refresh-btn', text: 'Refresh' });
 		refreshBtn.addEventListener('click', () => this.refresh(scanWarnings));
 
-		// Scan warnings (malformed notes)
-		if (scanWarnings.length > 0) {
-			this.renderScanWarnings(panel, scanWarnings);
-		}
-
 		// Context info
 		const contextInfo = panel.createDiv({ cls: 'context-info' });
 		contextInfo.createEl('h4', { text: contextName });
@@ -77,15 +72,39 @@ export class IntelligencePanel {
 			this.renderDistribution(panel, result.summary.by_evolution, result.summary.total_components);
 		}
 
-		// Warnings
-		if (result.warnings.length > 0) {
-			this.renderWarnings(panel, result.warnings);
+		// Scan warnings (malformed notes) -- collapsible, before analysis
+		if (scanWarnings.length > 0) {
+			this.renderCollapsible(panel, `Malformed Notes (${scanWarnings.length})`, false, (content) => {
+				this.renderScanWarningItems(content, scanWarnings);
+			});
 		}
 
-		// Insights
+		// Insights first -- collapsible, open by default
 		if (result.insights.length > 0) {
-			this.renderInsights(panel, result.insights);
+			this.renderCollapsible(panel, `Strategic Insights (${result.insights.length})`, true, (content) => {
+				this.renderInsightItems(content, result.insights);
+			});
 		}
+
+		// Warnings -- collapsible, closed by default
+		if (result.warnings.length > 0) {
+			this.renderCollapsible(panel, `Validation Warnings (${result.warnings.length})`, false, (content) => {
+				this.renderWarningItems(content, result.warnings);
+			});
+		}
+	}
+
+	private renderCollapsible(
+		parent: HTMLElement,
+		title: string,
+		open: boolean,
+		renderContent: (container: HTMLElement) => void,
+	): void {
+		const details = parent.createEl('details', { cls: 'collapsible-section' });
+		if (open) details.setAttribute('open', '');
+		details.createEl('summary', { cls: 'collapsible-header', text: title });
+		const content = details.createDiv({ cls: 'collapsible-content' });
+		renderContent(content);
 	}
 
 	private renderCard(parent: HTMLElement, title: string, value: string, cls?: string): void {
@@ -112,13 +131,9 @@ export class IntelligencePanel {
 		}
 	}
 
-	private renderWarnings(parent: HTMLElement, warnings: StrategicValidationWarning[]): void {
-		const section = parent.createDiv({ cls: 'warnings-section' });
-		section.createEl('h5', { text: 'Validation Warnings' });
-
-		const list = section.createDiv({ cls: 'items-list' });
+	private renderWarningItems(parent: HTMLElement, warnings: StrategicValidationWarning[]): void {
 		for (const warning of warnings) {
-			const item = list.createDiv({ cls: `warning-item severity-${warning.severity}` });
+			const item = parent.createDiv({ cls: `warning-item severity-${warning.severity}` });
 
 			const itemHeader = item.createDiv({ cls: 'item-header' });
 			itemHeader.createEl('span', { cls: 'severity-icon', text: this.getSeverityIcon(warning.severity) });
@@ -134,13 +149,9 @@ export class IntelligencePanel {
 		}
 	}
 
-	private renderInsights(parent: HTMLElement, insights: StrategicInsight[]): void {
-		const section = parent.createDiv({ cls: 'insights-section' });
-		section.createEl('h5', { text: 'Strategic Insights' });
-
-		const list = section.createDiv({ cls: 'items-list' });
+	private renderInsightItems(parent: HTMLElement, insights: StrategicInsight[]): void {
 		for (const insight of insights) {
-			const item = list.createDiv({ cls: `insight-item priority-${insight.priority}` });
+			const item = parent.createDiv({ cls: `insight-item priority-${insight.priority}` });
 
 			const itemHeader = item.createDiv({ cls: 'item-header' });
 			itemHeader.createEl('span', { cls: 'priority-icon', text: this.getPriorityIcon(insight.priority) });
@@ -168,13 +179,9 @@ export class IntelligencePanel {
 		}
 	}
 
-	private renderScanWarnings(parent: HTMLElement, scanWarnings: ScanWarning[]): void {
-		const section = parent.createDiv({ cls: 'scan-warnings-section' });
-		section.createEl('h5', { text: `Malformed Notes (${scanWarnings.length})` });
-
-		const list = section.createDiv({ cls: 'items-list' });
+	private renderScanWarningItems(parent: HTMLElement, scanWarnings: ScanWarning[]): void {
 		for (const warning of scanWarnings) {
-			const item = list.createDiv({ cls: 'warning-item severity-medium' });
+			const item = parent.createDiv({ cls: 'warning-item severity-medium' });
 
 			const itemHeader = item.createDiv({ cls: 'item-header' });
 			itemHeader.createEl('span', { cls: 'severity-icon', text: '\u26A0\uFE0F' });
