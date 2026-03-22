@@ -8,6 +8,8 @@
 
 An Obsidian plugin that builds interactive Wardley Maps from strategic YAML frontmatter across your vault notes.
 
+![Wardley Strategic Mapping - Tea Shop Example](Wardley-Map-Tea-Shop.png)
+
 ## How it works
 
 Each note in your vault is a strategic component. You add structured frontmatter to describe its evolution stage, importance, confidence, and relationships. The plugin scans your vault, builds a relationship graph, and renders an interactive Wardley Map with automatic layout.
