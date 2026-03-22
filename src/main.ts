@@ -1,9 +1,10 @@
-import { Plugin } from "obsidian";
+import { Plugin, Notice } from "obsidian";
 import { StrategicGraph } from "./graph";
 import { VaultScanner } from "./scanner";
 import { MapContextManager } from "./map-context";
 import { WardleyMapView, VIEW_TYPE_WARDLEY } from "./views/map-view";
 import { WardleyStrategicSettingTab, DEFAULT_SETTINGS } from "./settings";
+import { exportToOWM, exportToSVG } from "./export";
 import type { WardleyStrategicSettings } from "./settings";
 import type { ScanWarning } from "./types";
 
@@ -32,11 +33,40 @@ export default class WardleyStrategicPlugin extends Plugin {
 			callback: () => this.activateView(),
 		});
 
-		// Command to refresh the graph
+		// Export as OWM text (clipboard)
 		this.addCommand({
-			id: 'refresh-wardley-graph',
-			name: 'Refresh strategic graph',
-			callback: () => this.refresh(),
+			id: 'export-owm',
+			name: 'Export map as OWM (clipboard)',
+			callback: () => {
+				const owm = exportToOWM(this.graph, this.contextManager, this.settings.visual);
+				if (owm) {
+					navigator.clipboard.writeText(owm);
+					new Notice('OWM map copied to clipboard');
+				} else {
+					new Notice('No map context found');
+				}
+			},
+		});
+
+		// Export as SVG file
+		this.addCommand({
+			id: 'export-svg',
+			name: 'Export map as SVG',
+			callback: async () => {
+				const svg = exportToSVG(this.graph, this.contextManager, this.settings.visual);
+				if (svg) {
+					const context = this.contextManager.getCurrentMapContext()
+						|| this.contextManager.getDefaultMapContext();
+					const filename = (context?.name || 'wardley-map')
+						.replace(/[^a-zA-Z0-9-_ ]/g, '')
+						.replace(/\s+/g, '-')
+						.toLowerCase() + '.svg';
+					await this.app.vault.create(filename, svg);
+					new Notice(`Saved ${filename}`);
+				} else {
+					new Notice('No map context found');
+				}
+			},
 		});
 
 		// Settings tab
