@@ -48,11 +48,21 @@ Run the command **Open Wardley Strategic Map** to see your components automatica
 
 Toggle the intelligence panel to see:
 
-- **Validation warnings**: data quality checks on your notes
-- **Strategic insights**: graph structure analysis
+- **Strategic insights**: orphaned components, critical paths, evolution gaps, dependency risks
+- **Validation warnings**: low confidence, missing evidence, outdated validations, evolution inconsistencies
 - **Distribution charts**: evolution stage and importance breakdowns
+- **Save Report**: generates a timestamped markdown report in the map folder with wikilinks to all components
 
-See [Strategic Intelligence](#strategic-intelligence) below for details.
+See [Strategic Intelligence](#strategic-intelligence-1) below for details.
+
+### Export
+
+| Command | Description |
+|---------|-------------|
+| **Export map as OWM (clipboard)** | Copies the map in [Online Wardley Maps](https://onlinewardleymaps.com) text format. Paste to interact, drag components, share URLs. |
+| **Export map as SVG** | Saves a standalone SVG file to the vault root. |
+
+All commands are in the palette under "Wardley".
 
 ## Frontmatter reference
 
