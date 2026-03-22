@@ -1,6 +1,10 @@
 # Wardley Strategic Mapping
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/github/v/release/BlockSecCA/wardley-strategic?label=version)](https://github.com/BlockSecCA/wardley-strategic/releases)
+[![License: MIT](https://img.shields.io/github/license/BlockSecCA/wardley-strategic)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](src/)
+[![Obsidian](https://img.shields.io/badge/Obsidian-plugin-7C3AED?logo=obsidian&logoColor=white)](https://obsidian.md)
+[![Tests](https://img.shields.io/badge/tests-48%20passing-brightgreen)](test.mts)
 
 An Obsidian plugin that builds interactive Wardley Maps from strategic YAML frontmatter across your vault notes.
 
