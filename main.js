@@ -264,7 +264,9 @@ var VaultScanner = class {
       strategic.evidence_sources = Array.isArray(fm.evidence_sources) ? fm.evidence_sources : [fm.evidence_sources];
     }
     if (fm.last_validated != null) {
-      if (typeof fm.last_validated === "string" && /^\d{4}-\d{2}-\d{2}$/.test(fm.last_validated)) {
+      if (fm.last_validated instanceof Date) {
+        strategic.last_validated = fm.last_validated.toISOString().split("T")[0];
+      } else if (typeof fm.last_validated === "string" && /^\d{4}-\d{2}-\d{2}$/.test(fm.last_validated)) {
         strategic.last_validated = fm.last_validated;
       } else {
         problems.push(`Invalid last_validated "${fm.last_validated}". Expected: YYYY-MM-DD`);
