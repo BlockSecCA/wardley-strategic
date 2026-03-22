@@ -6,8 +6,7 @@ strategic_importance: supporting
 confidence_level: high
 evidence_sources:
   - "[[Kettle Performance Analysis]]"
-  - "[[Kettle Maintenance Records]]"
-last_validated: "2024-12-01"
+last_validated: "2026-03-10"
 depends_on:
   - "[[Power]]"
 evolves_to:
@@ -16,4 +15,4 @@ evolves_to:
 
 # Kettle
 
-Equipment for heating water to brewing temperature. Currently in a transition phase, evolving from basic heating devices toward smart appliances with digital temperature control.
+Equipment for heating water. Currently evolving from basic heating devices toward smart appliances with digital temperature control.

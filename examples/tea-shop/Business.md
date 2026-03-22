@@ -1,17 +1,16 @@
 ---
 wardley: true
 type: user_need
-evolution_stage: product
+evolution_stage: genesis
 strategic_importance: critical
 confidence_level: high
 evidence_sources:
   - "[[Customer Demand Analysis]]"
-  - "[[Tea Market Research]]"
-last_validated: "2025-01-01"
+last_validated: "2026-03-15"
 depends_on:
   - "[[Cup of Tea]]"
 ---
 
 # Business
 
-The fundamental business need: providing tea service to customers who want a hot beverage. This represents the core user need that drives the entire value chain.
+The core user need: customers want a hot beverage. This drives the entire value chain.

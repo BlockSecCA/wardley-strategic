@@ -6,10 +6,9 @@ strategic_importance: supporting
 confidence_level: high
 evidence_sources:
   - "[[Cup Supplier Catalog]]"
-  - "[[Cup Inventory Management]]"
-last_validated: "2024-12-15"
+last_validated: "2026-03-10"
 ---
 
 # Cup
 
-Physical vessel for serving tea to customers. An essential but standardized commodity component where the focus should be on cost efficiency and reliable supply.
+Physical vessel for serving tea. A standardised commodity where the focus is cost efficiency and reliable supply.

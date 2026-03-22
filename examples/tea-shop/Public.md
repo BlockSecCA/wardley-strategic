@@ -1,17 +1,16 @@
 ---
 wardley: true
 type: user_need
-evolution_stage: commodity
+evolution_stage: genesis
 strategic_importance: critical
 confidence_level: high
 evidence_sources:
   - "[[Public Health Requirements]]"
-  - "[[Regulatory Compliance Analysis]]"
-last_validated: "2025-01-01"
+last_validated: "2026-03-15"
 depends_on:
   - "[[Cup of Tea]]"
 ---
 
 # Public
 
-Public health and regulatory requirements governing food and beverage service. A critical compliance requirement that enables legal operation of the tea shop.
+Public health and regulatory requirements for food and beverage service. A compliance need that enables legal operation.

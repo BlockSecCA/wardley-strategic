@@ -1,15 +1,14 @@
 ---
 wardley: true
 type: service
-evolution_stage: product
+evolution_stage: commodity
 strategic_importance: supporting
 confidence_level: high
 evidence_sources:
   - "[[Utility Bills Analysis]]"
-  - "[[Electrical Safety Inspection]]"
-last_validated: "2024-12-01"
+last_validated: "2026-03-10"
 ---
 
 # Power
 
-Electrical power supply for tea shop operations. A commodity utility service with standardized, regulated pricing where the focus should be on energy efficiency rather than supply alternatives.
+Electrical power supply. A commodity utility where the focus is energy efficiency rather than supply alternatives.

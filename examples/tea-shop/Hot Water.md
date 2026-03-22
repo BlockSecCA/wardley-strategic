@@ -1,13 +1,12 @@
 ---
 wardley: true
 type: capability
-evolution_stage: commodity
+evolution_stage: product
 strategic_importance: important
 confidence_level: high
 evidence_sources:
   - "[[Brewing Temperature Standards]]"
-  - "[[Equipment Specifications]]"
-last_validated: "2024-12-05"
+last_validated: "2026-03-10"
 depends_on:
   - "[[Water]]"
   - "[[Kettle]]"
@@ -15,4 +14,4 @@ depends_on:
 
 # Hot Water
 
-Heated water at the proper temperature for brewing tea. Proper temperature control (160-212 F depending on tea type) is essential for optimal flavor extraction.
+Water heated to the proper brewing temperature. Proper temperature control is essential for optimal flavour.
