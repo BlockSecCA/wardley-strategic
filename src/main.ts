@@ -41,7 +41,7 @@ export default class WardleyStrategicPlugin extends Plugin {
 
 		// Settings tab
 		this.addSettingTab(
-			new WardleyStrategicSettingTab(this.app, this.settings, async () => {
+			new WardleyStrategicSettingTab(this.app, this, this.settings, async () => {
 				await this.saveData(this.settings);
 			})
 		);

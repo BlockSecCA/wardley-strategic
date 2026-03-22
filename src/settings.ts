@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, Plugin, PluginSettingTab, Setting } from "obsidian";
 import type { WardleyMapVisualSettings } from "./types";
 import { DEFAULT_VISUAL_SETTINGS } from "./types";
 
@@ -14,9 +14,8 @@ export class WardleyStrategicSettingTab extends PluginSettingTab {
 	private settings: WardleyStrategicSettings;
 	private onSave: () => Promise<void>;
 
-	constructor(app: App, settings: WardleyStrategicSettings, onSave: () => Promise<void>) {
-		// Pass a minimal plugin-like object since we don't have plugin ref here
-		super(app, null as any);
+	constructor(app: App, plugin: Plugin, settings: WardleyStrategicSettings, onSave: () => Promise<void>) {
+		super(app, plugin);
 		this.settings = settings;
 		this.onSave = onSave;
 	}

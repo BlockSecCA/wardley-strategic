@@ -1540,8 +1540,8 @@ var DEFAULT_SETTINGS = {
   visual: { ...DEFAULT_VISUAL_SETTINGS }
 };
 var WardleyStrategicSettingTab = class extends import_obsidian4.PluginSettingTab {
-  constructor(app, settings, onSave) {
-    super(app, null);
+  constructor(app, plugin, settings, onSave) {
+    super(app, plugin);
     this.settings = settings;
     this.onSave = onSave;
   }
@@ -1602,7 +1602,7 @@ var WardleyStrategicPlugin = class extends import_obsidian5.Plugin {
       callback: () => this.refresh()
     });
     this.addSettingTab(
-      new WardleyStrategicSettingTab(this.app, this.settings, async () => {
+      new WardleyStrategicSettingTab(this.app, this, this.settings, async () => {
         await this.saveData(this.settings);
       })
     );
