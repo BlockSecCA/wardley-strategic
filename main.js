@@ -27,7 +27,7 @@ __export(main_exports, {
   default: () => WardleyStrategicPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian5 = require("obsidian");
+var import_obsidian6 = require("obsidian");
 
 // src/graph.ts
 var StrategicGraph = class {
@@ -460,7 +460,7 @@ var MapContextManager = class {
 };
 
 // src/views/map-view.ts
-var import_obsidian3 = require("obsidian");
+var import_obsidian4 = require("obsidian");
 
 // src/positioner.ts
 var WardleyPositioner = class {
@@ -902,6 +902,9 @@ var WardleyMapRenderer = class {
   }
 };
 
+// src/views/intelligence-panel.ts
+var import_obsidian3 = require("obsidian");
+
 // src/analyzer.ts
 var StrategicAnalyzer = class {
   constructor(graph, checkNoteExists) {
@@ -1183,14 +1186,181 @@ var StrategicAnalyzer = class {
   }
 };
 
+// src/report.ts
+function generateReport(graph, contextManager, settings, checkNoteExists) {
+  const context = contextManager.getCurrentMapContext() || contextManager.getDefaultMapContext();
+  if (!context)
+    return null;
+  const analyzer = new StrategicAnalyzer(graph, checkNoteExists);
+  const componentIds = contextManager.getComponentsForMap(context.id);
+  const result = analyzer.analyze(componentIds);
+  const { components, edges } = buildPositionedComponents(graph, contextManager, settings, context.id);
+  const lines = [];
+  lines.push(`# ${context.name} - Strategic Report`);
+  lines.push("");
+  lines.push(`> Generated ${(/* @__PURE__ */ new Date()).toISOString().split("T")[0]}. Scope: ${context.scope}.`);
+  lines.push("");
+  lines.push("## Summary");
+  lines.push("");
+  lines.push(`| Metric | Count |`);
+  lines.push(`|--------|-------|`);
+  lines.push(`| Components | ${result.summary.total_components} |`);
+  lines.push(`| Warnings | ${result.warnings.length} |`);
+  lines.push(`| Insights | ${result.insights.length} |`);
+  lines.push("");
+  if (Object.keys(result.summary.by_evolution).length > 0) {
+    lines.push("### Evolution Distribution");
+    lines.push("");
+    lines.push("| Stage | Count |");
+    lines.push("|-------|-------|");
+    for (const [stage, count] of Object.entries(result.summary.by_evolution)) {
+      lines.push(`| ${stage} | ${count} |`);
+    }
+    lines.push("");
+  }
+  if (Object.keys(result.summary.by_importance).length > 0) {
+    lines.push("### Importance Distribution");
+    lines.push("");
+    lines.push("| Level | Count |");
+    lines.push("|-------|-------|");
+    for (const [level, count] of Object.entries(result.summary.by_importance)) {
+      lines.push(`| ${level} | ${count} |`);
+    }
+    lines.push("");
+  }
+  lines.push("## Components");
+  lines.push("");
+  lines.push("| Component | Type | Evolution | Importance | Confidence |");
+  lines.push("|-----------|------|-----------|------------|------------|");
+  for (const comp of components) {
+    const s = comp.strategic;
+    const link = `[[${comp.name}]]`;
+    lines.push(`| ${link} | ${s.type || "-"} | ${s.evolution_stage || "-"} | ${s.strategic_importance || "-"} | ${s.confidence_level || "-"} |`);
+  }
+  lines.push("");
+  const depEdges = edges.filter((e) => e.type === "depends_on" || e.type === "enables");
+  if (depEdges.length > 0) {
+    lines.push("## Value Chain");
+    lines.push("");
+    for (const edge of depEdges) {
+      const sourceName = getName(edge.source);
+      const targetName = getName(edge.target);
+      if (edge.type === "depends_on") {
+        lines.push(`- [[${sourceName}]] depends on [[${targetName}]]`);
+      } else {
+        lines.push(`- [[${sourceName}]] enables [[${targetName}]]`);
+      }
+    }
+    lines.push("");
+  }
+  const evoEdges = edges.filter((e) => e.type === "evolves_to" || e.type === "evolved_from");
+  if (evoEdges.length > 0) {
+    lines.push("## Evolution");
+    lines.push("");
+    for (const edge of evoEdges) {
+      const sourceName = getName(edge.source);
+      const targetName = getName(edge.target);
+      if (edge.type === "evolves_to") {
+        lines.push(`- [[${sourceName}]] evolves to [[${targetName}]]`);
+      } else {
+        lines.push(`- [[${sourceName}]] evolved from [[${targetName}]]`);
+      }
+    }
+    lines.push("");
+  }
+  if (result.insights.length > 0) {
+    lines.push("## Strategic Insights");
+    lines.push("");
+    for (const insight of result.insights) {
+      lines.push(`### ${getInsightLabel(insight.type)} (${insight.priority})`);
+      lines.push("");
+      lines.push(insight.message);
+      lines.push("");
+      if (insight.affected_components.length > 0) {
+        lines.push("Affected:");
+        for (const path of insight.affected_components) {
+          lines.push(`- [[${getName(path)}]]`);
+        }
+        lines.push("");
+      }
+    }
+  }
+  if (result.warnings.length > 0) {
+    lines.push("## Validation Warnings");
+    lines.push("");
+    for (const warning of result.warnings) {
+      lines.push(`- **${getWarningLabel(warning.type)}** (${warning.severity}): ${warning.message} - [[${getName(warning.component_path)}]]`);
+    }
+    lines.push("");
+  }
+  const filename = buildFilename(context);
+  return { content: lines.join("\n"), filename };
+}
+function buildPositionedComponents(graph, contextManager, settings, mapId) {
+  const componentIds = contextManager.getComponentsForMap(mapId);
+  const components = [];
+  for (const id of componentIds) {
+    const node = graph.getNode(id);
+    if (!(node == null ? void 0 : node.strategic))
+      continue;
+    components.push({
+      id,
+      name: getName(id),
+      strategic: node.strategic,
+      x: 0,
+      y: 0
+    });
+  }
+  const edges = [];
+  const idSet = new Set(components.map((c) => c.id));
+  graph.forEachEdge((edge) => {
+    if (idSet.has(edge.source) && idSet.has(edge.target)) {
+      edges.push({ source: edge.source, target: edge.target, type: edge.field });
+    }
+  });
+  const positioner = new WardleyPositioner(settings);
+  const positioned = positioner.position(components, edges);
+  return { components: positioned, edges };
+}
+function buildFilename(context) {
+  const slug = context.name.replace(/[^a-zA-Z0-9-_ ]/g, "").replace(/\s+/g, "-").toLowerCase();
+  if (context.scope === "folder" && context.includes && context.includes.length > 0) {
+    return `${context.includes[0]}/${slug}-report.md`;
+  }
+  return `${slug}-report.md`;
+}
+function getName(path) {
+  var _a;
+  return ((_a = path.split("/").pop()) == null ? void 0 : _a.replace(".md", "")) || path;
+}
+function getInsightLabel(type) {
+  const labels = {
+    orphaned_component: "Orphaned Components",
+    critical_path: "Critical Path",
+    evolution_gap: "Evolution Gap",
+    dependency_risk: "Dependency Risk"
+  };
+  return labels[type] || type.replace(/_/g, " ");
+}
+function getWarningLabel(type) {
+  const labels = {
+    low_confidence: "Low Confidence",
+    missing_evidence: "Missing Evidence",
+    outdated_validation: "Outdated Validation",
+    evolution_inconsistency: "Evolution Inconsistency"
+  };
+  return labels[type] || type.replace(/_/g, " ");
+}
+
 // src/views/intelligence-panel.ts
 var IntelligencePanel = class {
-  constructor(container, app, graph, contextManager) {
+  constructor(container, app, graph, contextManager, settings) {
     this.loading = false;
     this.container = container;
     this.app = app;
     this.graph = graph;
     this.contextManager = contextManager;
+    this.settings = settings;
   }
   async refresh(scanWarnings) {
     this.loading = true;
@@ -1214,7 +1384,10 @@ var IntelligencePanel = class {
     const panel = this.container.createDiv({ cls: "strategic-intelligence-panel" });
     const header = panel.createDiv({ cls: "panel-header" });
     header.createEl("h3", { text: "Strategic Intelligence" });
-    const refreshBtn = header.createEl("button", { cls: "refresh-btn", text: "Refresh" });
+    const btnGroup = header.createDiv({ cls: "panel-btn-group" });
+    const saveBtn = btnGroup.createEl("button", { cls: "refresh-btn", text: "Save Report" });
+    saveBtn.addEventListener("click", () => this.saveReport());
+    const refreshBtn = btnGroup.createEl("button", { cls: "refresh-btn", text: "Refresh" });
     refreshBtn.addEventListener("click", () => this.refresh(scanWarnings));
     const contextInfo = panel.createDiv({ cls: "context-info" });
     contextInfo.createEl("h4", { text: contextName });
@@ -1325,6 +1498,25 @@ var IntelligencePanel = class {
       }
     }
   }
+  async saveReport() {
+    const checkNoteExists = (name) => {
+      const allFiles = this.app.vault.getMarkdownFiles();
+      return allFiles.some((f) => f.basename === name);
+    };
+    const result = generateReport(this.graph, this.contextManager, this.settings, checkNoteExists);
+    if (!result) {
+      new import_obsidian3.Notice("No map context found");
+      return;
+    }
+    const existing = this.app.vault.getAbstractFileByPath(result.filename);
+    if (existing) {
+      await this.app.vault.modify(existing, result.content);
+      new import_obsidian3.Notice(`Updated ${result.filename}`);
+    } else {
+      await this.app.vault.create(result.filename, result.content);
+      new import_obsidian3.Notice(`Created ${result.filename}`);
+    }
+  }
   renderEmptyState() {
     const empty = this.container.createDiv({ cls: "empty-state" });
     empty.createEl("p", { text: "No strategic map context available." });
@@ -1367,7 +1559,7 @@ var IntelligencePanel = class {
 
 // src/views/map-view.ts
 var VIEW_TYPE_WARDLEY = "wardley-strategic-map";
-var WardleyMapView = class extends import_obsidian3.ItemView {
+var WardleyMapView = class extends import_obsidian4.ItemView {
   constructor(leaf, plugin) {
     super(leaf);
     this.renderer = null;
@@ -1429,7 +1621,8 @@ var WardleyMapView = class extends import_obsidian3.ItemView {
       this.panelEl,
       this.app,
       this.plugin.graph,
-      this.plugin.contextManager
+      this.plugin.contextManager,
+      this.plugin.settings.visual
     );
     await this.refreshContexts();
     if (this.currentContext) {
@@ -1496,7 +1689,8 @@ var WardleyMapView = class extends import_obsidian3.ItemView {
         this.panelEl,
         this.app,
         this.plugin.graph,
-        this.plugin.contextManager
+        this.plugin.contextManager,
+        this.plugin.settings.visual
       );
     }
     await this.refreshContexts();
@@ -1542,11 +1736,11 @@ var WardleyMapView = class extends import_obsidian3.ItemView {
 };
 
 // src/settings.ts
-var import_obsidian4 = require("obsidian");
+var import_obsidian5 = require("obsidian");
 var DEFAULT_SETTINGS = {
   visual: { ...DEFAULT_VISUAL_SETTINGS }
 };
-var WardleyStrategicSettingTab = class extends import_obsidian4.PluginSettingTab {
+var WardleyStrategicSettingTab = class extends import_obsidian5.PluginSettingTab {
   constructor(app, plugin, settings, onSave) {
     super(app, plugin);
     this.settings = settings;
@@ -1556,27 +1750,27 @@ var WardleyStrategicSettingTab = class extends import_obsidian4.PluginSettingTab
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h2", { text: "Wardley Strategic Mapping" });
-    new import_obsidian4.Setting(containerEl).setName("Font size").setDesc("Font size for component labels").addSlider((slider) => slider.setLimits(8, 16, 1).setValue(this.settings.visual.font_size).setDynamicTooltip().onChange(async (value) => {
+    new import_obsidian5.Setting(containerEl).setName("Font size").setDesc("Font size for component labels").addSlider((slider) => slider.setLimits(8, 16, 1).setValue(this.settings.visual.font_size).setDynamicTooltip().onChange(async (value) => {
       this.settings.visual.font_size = value;
       await this.onSave();
     }));
-    new import_obsidian4.Setting(containerEl).setName("Node size").setDesc("Radius of component circles").addSlider((slider) => slider.setLimits(6, 20, 1).setValue(this.settings.visual.node_size).setDynamicTooltip().onChange(async (value) => {
+    new import_obsidian5.Setting(containerEl).setName("Node size").setDesc("Radius of component circles").addSlider((slider) => slider.setLimits(6, 20, 1).setValue(this.settings.visual.node_size).setDynamicTooltip().onChange(async (value) => {
       this.settings.visual.node_size = value;
       await this.onSave();
     }));
-    new import_obsidian4.Setting(containerEl).setName("Edge thickness").setDesc("Width of relationship lines").addSlider((slider) => slider.setLimits(1, 5, 0.5).setValue(this.settings.visual.edge_thickness).setDynamicTooltip().onChange(async (value) => {
+    new import_obsidian5.Setting(containerEl).setName("Edge thickness").setDesc("Width of relationship lines").addSlider((slider) => slider.setLimits(1, 5, 0.5).setValue(this.settings.visual.edge_thickness).setDynamicTooltip().onChange(async (value) => {
       this.settings.visual.edge_thickness = value;
       await this.onSave();
     }));
-    new import_obsidian4.Setting(containerEl).setName("Component spacing").setDesc("Spacing between overlapping components").addSlider((slider) => slider.setLimits(40, 120, 10).setValue(this.settings.visual.component_spacing).setDynamicTooltip().onChange(async (value) => {
+    new import_obsidian5.Setting(containerEl).setName("Component spacing").setDesc("Spacing between overlapping components").addSlider((slider) => slider.setLimits(40, 120, 10).setValue(this.settings.visual.component_spacing).setDynamicTooltip().onChange(async (value) => {
       this.settings.visual.component_spacing = value;
       await this.onSave();
     }));
-    new import_obsidian4.Setting(containerEl).setName("Show evolution grid").setDesc("Display vertical grid lines for evolution stages").addToggle((toggle) => toggle.setValue(this.settings.visual.show_evolution_grid).onChange(async (value) => {
+    new import_obsidian5.Setting(containerEl).setName("Show evolution grid").setDesc("Display vertical grid lines for evolution stages").addToggle((toggle) => toggle.setValue(this.settings.visual.show_evolution_grid).onChange(async (value) => {
       this.settings.visual.show_evolution_grid = value;
       await this.onSave();
     }));
-    new import_obsidian4.Setting(containerEl).setName("Show axis labels").setDesc("Display axis labels for Value Chain and Evolution").addToggle((toggle) => toggle.setValue(this.settings.visual.show_axis_labels).onChange(async (value) => {
+    new import_obsidian5.Setting(containerEl).setName("Show axis labels").setDesc("Display axis labels for Value Chain and Evolution").addToggle((toggle) => toggle.setValue(this.settings.visual.show_axis_labels).onChange(async (value) => {
       this.settings.visual.show_axis_labels = value;
       await this.onSave();
     }));
@@ -1738,7 +1932,7 @@ function escapeXml(s) {
 }
 
 // src/main.ts
-var WardleyStrategicPlugin = class extends import_obsidian5.Plugin {
+var WardleyStrategicPlugin = class extends import_obsidian6.Plugin {
   constructor() {
     super(...arguments);
     this.graph = new StrategicGraph();
@@ -1764,9 +1958,9 @@ var WardleyStrategicPlugin = class extends import_obsidian5.Plugin {
         const owm = exportToOWM(this.graph, this.contextManager, this.settings.visual);
         if (owm) {
           navigator.clipboard.writeText(owm);
-          new import_obsidian5.Notice("OWM map copied to clipboard");
+          new import_obsidian6.Notice("OWM map copied to clipboard");
         } else {
-          new import_obsidian5.Notice("No map context found");
+          new import_obsidian6.Notice("No map context found");
         }
       }
     });
@@ -1779,9 +1973,9 @@ var WardleyStrategicPlugin = class extends import_obsidian5.Plugin {
           const context = this.contextManager.getCurrentMapContext() || this.contextManager.getDefaultMapContext();
           const filename = ((context == null ? void 0 : context.name) || "wardley-map").replace(/[^a-zA-Z0-9-_ ]/g, "").replace(/\s+/g, "-").toLowerCase() + ".svg";
           await this.app.vault.create(filename, svg);
-          new import_obsidian5.Notice(`Saved ${filename}`);
+          new import_obsidian6.Notice(`Saved ${filename}`);
         } else {
-          new import_obsidian5.Notice("No map context found");
+          new import_obsidian6.Notice("No map context found");
         }
       }
     });

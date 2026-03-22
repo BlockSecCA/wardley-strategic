@@ -1,8 +1,9 @@
-import type { App } from "obsidian";
+import { type App, Notice } from "obsidian";
 import type { StrategicGraph } from "../graph";
 import type { MapContextManager } from "../map-context";
-import type { StrategicValidationWarning, StrategicInsight, AnalysisResult, ScanWarning } from "../types";
+import type { WardleyMapVisualSettings, StrategicValidationWarning, StrategicInsight, AnalysisResult, ScanWarning } from "../types";
 import { StrategicAnalyzer } from "../analyzer";
+import { generateReport } from "../report";
 
 /**
  * Renders the Strategic Intelligence analysis panel as DOM elements.
@@ -13,13 +14,15 @@ export class IntelligencePanel {
 	private app: App;
 	private graph: StrategicGraph;
 	private contextManager: MapContextManager;
+	private settings: WardleyMapVisualSettings;
 	private loading = false;
 
-	constructor(container: HTMLElement, app: App, graph: StrategicGraph, contextManager: MapContextManager) {
+	constructor(container: HTMLElement, app: App, graph: StrategicGraph, contextManager: MapContextManager, settings: WardleyMapVisualSettings) {
 		this.container = container;
 		this.app = app;
 		this.graph = graph;
 		this.contextManager = contextManager;
+		this.settings = settings;
 	}
 
 	async refresh(scanWarnings?: ScanWarning[]): Promise<void> {
@@ -53,7 +56,12 @@ export class IntelligencePanel {
 		// Header
 		const header = panel.createDiv({ cls: 'panel-header' });
 		header.createEl('h3', { text: 'Strategic Intelligence' });
-		const refreshBtn = header.createEl('button', { cls: 'refresh-btn', text: 'Refresh' });
+		const btnGroup = header.createDiv({ cls: 'panel-btn-group' });
+
+		const saveBtn = btnGroup.createEl('button', { cls: 'refresh-btn', text: 'Save Report' });
+		saveBtn.addEventListener('click', () => this.saveReport());
+
+		const refreshBtn = btnGroup.createEl('button', { cls: 'refresh-btn', text: 'Refresh' });
 		refreshBtn.addEventListener('click', () => this.refresh(scanWarnings));
 
 		// Context info
@@ -195,6 +203,28 @@ export class IntelligencePanel {
 			for (const problem of warning.problems) {
 				item.createDiv({ cls: 'item-message', text: problem });
 			}
+		}
+	}
+
+	private async saveReport(): Promise<void> {
+		const checkNoteExists = (name: string): boolean => {
+			const allFiles = this.app.vault.getMarkdownFiles();
+			return allFiles.some(f => f.basename === name);
+		};
+
+		const result = generateReport(this.graph, this.contextManager, this.settings, checkNoteExists);
+		if (!result) {
+			new Notice('No map context found');
+			return;
+		}
+
+		const existing = this.app.vault.getAbstractFileByPath(result.filename);
+		if (existing) {
+			await this.app.vault.modify(existing as any, result.content);
+			new Notice(`Updated ${result.filename}`);
+		} else {
+			await this.app.vault.create(result.filename, result.content);
+			new Notice(`Created ${result.filename}`);
 		}
 	}
 

@@ -85,7 +85,7 @@ export class WardleyMapView extends ItemView {
 
 		// Create intelligence panel
 		this.intelligencePanel = new IntelligencePanel(
-			this.panelEl, this.app, this.plugin.graph, this.plugin.contextManager,
+			this.panelEl, this.app, this.plugin.graph, this.plugin.contextManager, this.plugin.settings.visual,
 		);
 
 		// Initial render
@@ -156,7 +156,7 @@ export class WardleyMapView extends ItemView {
 		}
 		if (this.panelEl) {
 			this.intelligencePanel = new IntelligencePanel(
-				this.panelEl, this.app, this.plugin.graph, this.plugin.contextManager,
+				this.panelEl, this.app, this.plugin.graph, this.plugin.contextManager, this.plugin.settings.visual,
 			);
 		}
 
