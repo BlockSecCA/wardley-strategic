@@ -1,0 +1,10 @@
+{
+	"id": "wardley-strategic",
+	"name": "Wardley Strategic Mapping",
+	"version": "1.0.0",
+	"minAppVersion": "1.0.0",
+	"description": "Build interactive Wardley Maps from strategic YAML frontmatter across vault notes",
+	"author": "BlockSecCA",
+	"authorUrl": "https://github.com/BlockSecCA",
+	"isDesktopOnly": false
+}
