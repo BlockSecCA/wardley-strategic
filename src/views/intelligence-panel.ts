@@ -218,14 +218,8 @@ export class IntelligencePanel {
 			return;
 		}
 
-		const existing = this.app.vault.getAbstractFileByPath(result.filename);
-		if (existing) {
-			await this.app.vault.modify(existing as any, result.content);
-			new Notice(`Updated ${result.filename}`);
-		} else {
-			await this.app.vault.create(result.filename, result.content);
-			new Notice(`Created ${result.filename}`);
-		}
+		await this.app.vault.create(result.filename, result.content);
+		new Notice(`Saved ${result.filename}`);
 	}
 
 	private renderEmptyState(): void {

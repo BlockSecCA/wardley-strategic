@@ -186,10 +186,13 @@ function buildFilename(context: MapContext): string {
 		.replace(/\s+/g, '-')
 		.toLowerCase();
 
+	const now = new Date();
+	const timestamp = now.toISOString().replace(/T/, '-').replace(/:/g, '').split('.')[0];
+
 	if (context.scope === 'folder' && context.includes && context.includes.length > 0) {
-		return `${context.includes[0]}/${slug}-report.md`;
+		return `${context.includes[0]}/${slug}-report-${timestamp}.md`;
 	}
-	return `${slug}-report.md`;
+	return `${slug}-report-${timestamp}.md`;
 }
 
 function getName(path: string): string {

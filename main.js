@@ -1324,10 +1324,12 @@ function buildPositionedComponents(graph, contextManager, settings, mapId) {
 }
 function buildFilename(context) {
   const slug = context.name.replace(/[^a-zA-Z0-9-_ ]/g, "").replace(/\s+/g, "-").toLowerCase();
+  const now = /* @__PURE__ */ new Date();
+  const timestamp = now.toISOString().replace(/T/, "-").replace(/:/g, "").split(".")[0];
   if (context.scope === "folder" && context.includes && context.includes.length > 0) {
-    return `${context.includes[0]}/${slug}-report.md`;
+    return `${context.includes[0]}/${slug}-report-${timestamp}.md`;
   }
-  return `${slug}-report.md`;
+  return `${slug}-report-${timestamp}.md`;
 }
 function getName(path) {
   var _a;
@@ -1508,14 +1510,8 @@ var IntelligencePanel = class {
       new import_obsidian3.Notice("No map context found");
       return;
     }
-    const existing = this.app.vault.getAbstractFileByPath(result.filename);
-    if (existing) {
-      await this.app.vault.modify(existing, result.content);
-      new import_obsidian3.Notice(`Updated ${result.filename}`);
-    } else {
-      await this.app.vault.create(result.filename, result.content);
-      new import_obsidian3.Notice(`Created ${result.filename}`);
-    }
+    await this.app.vault.create(result.filename, result.content);
+    new import_obsidian3.Notice(`Saved ${result.filename}`);
   }
   renderEmptyState() {
     const empty = this.container.createDiv({ cls: "empty-state" });
